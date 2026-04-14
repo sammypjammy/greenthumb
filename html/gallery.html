@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant Gallery Carousel</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body class="gallery-page">
+    <div class="page-shell">
+        <div class="top-row">
+            <div class="page-header">
+                <h1 id="top">Plant Gallery</h1>
+            </div>
+            <div class="top-nav">
+                <a class="nav-link" href="../index.html">Home</a>
+                <a class="nav-link active" href="gallery.html">Gallery</a>
+                <a class="nav-link" href="aboutme.html">About Me</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <section class="carousel" aria-label="Plant image carousel">
+                <div class="slides">
+                    <div class="slide active">
+                        <a class="image-link" href="https://www.lulasgarden.com/collections/bamboo-gardens" target="_blank"><img src="https://www.lulasgarden.com/cdn/shop/files/BAMBOO-JEWEL-HB_720x.jpg?v=1724195958" alt="Bamboo Jewel arrangement"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://www.lulasgarden.com/collections/bamboo-gardens" target="_blank"><img src="https://www.lulasgarden.com/cdn/shop/products/ZEBRA-LIFESTYLE-720_720x.jpg?v=1681254337" alt="Zebra plant lifestyle setup"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://www.lulasgarden.com/collections/bamboo-gardens" target="_blank"><img src="https://www.lulasgarden.com/cdn/shop/products/CACTI-BOW-BAMBOO-720_720x.jpg?v=1681254918" alt="Cacti bow bamboo arrangement"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://www.lulasgarden.com/collections/bamboo-gardens" target="_blank"><img src="https://www.lulasgarden.com/cdn/shop/files/ORGZEBRA-BAMBOO-FOREVER_720x.jpg?v=1724271066" alt="Organic zebra bamboo forever arrangement"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://images.unsplash.com/photo-1497250681960-ef046c08a56e" target="_blank"><img src="https://images.unsplash.com/photo-1497250681960-ef046c08a56e" alt="Lush green indoor plant leaves"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://images.unsplash.com/photo-1512428813834-c702c7702b78" target="_blank"><img src="https://images.unsplash.com/photo-1512428813834-c702c7702b78" alt="Close-up of healthy houseplants"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://images.unsplash.com/photo-1463320898484-cdee8141c787" target="_blank"><img src="https://images.unsplash.com/photo-1463320898484-cdee8141c787" alt="Plant shelf with mixed foliage"></a>
+                    </div>
+                    <div class="slide">
+                        <a class="image-link" href="https://images.unsplash.com/photo-1502082553048-f009c37129b9" target="_blank"><img src="https://images.unsplash.com/photo-1502082553048-f009c37129b9" alt="Minimal indoor plant corner"></a>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="prev" type="button" aria-label="Previous slide">Previous</button>
+                    <div class="dots" id="dots" aria-label="Slide indicators"></div>
+                    <button id="next" type="button" aria-label="Next slide">Next</button>
+                </div>
+            </section>
+        </div>
+    </div>
+    <div class="site-footer">Plant Care Site</div>
+
+    <script>
+        const slides = Array.from(document.querySelectorAll(".slide"));
+        const dotsContainer = document.getElementById("dots");
+        const prevBtn = document.getElementById("prev");
+        const nextBtn = document.getElementById("next");
+        let index = 0;
+
+        slides.forEach((_, i) => {
+            const dot = document.createElement("button");
+            dot.className = "dot";
+            dot.type = "button";
+            dot.ariaLabel = `Go to slide ${i + 1}`;
+            dot.addEventListener("click", () => showSlide(i));
+            dotsContainer.appendChild(dot);
+        });
+
+        const dots = Array.from(document.querySelectorAll(".dot"));
+
+        function showSlide(i) {
+            index = (i + slides.length) % slides.length;
+            slides.forEach((slide, slideIndex) => {
+                slide.classList.toggle("active", slideIndex === index);
+            });
+            dots.forEach((dot, dotIndex) => {
+                dot.classList.toggle("active", dotIndex === index);
+            });
+        }
+
+        prevBtn.addEventListener("click", () => showSlide(index - 1));
+        nextBtn.addEventListener("click", () => showSlide(index + 1));
+
+        showSlide(0);
+    </script>
+</body>
+</html>
