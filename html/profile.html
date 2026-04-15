@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | Green Thumb</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../script.js" defer></script>
+</head>
+<body class="index-page">
+    <div class="page-shell">
+        <div class="main-content landing-content">
+            <div class="hero-section">
+                <div class="hero-top-row">
+                    <div class="page-header">
+                        <h1 id="top">Green Thumb</h1>
+                    </div>
+                    <div class="top-nav">
+                        <a class="nav-link" href="../index.html">Home</a>
+                        <a class="nav-link" href="mygarden.html">My Garden</a>
+                        <a id="nav-login-link" class="nav-link" href="#account">Log In</a>
+                        <a id="nav-profile-link" class="nav-link active" href="profile.html" hidden>Profile</a>
+                        <button id="nav-logout-btn" class="nav-link nav-logout-btn" type="button" hidden>Log Out</button>
+                    </div>
+                </div>
+                <div class="hero-body">
+                    <h2 class="hero-title">Manage your Green Thumb profile.</h2>
+                    <p class="hero-description">
+                        Update account details, review your account basics, and control personalized settings in one place.
+                    </p>
+                </div>
+            </div>
+
+            <section id="account" class="section-block account-section">
+                <div class="account-section-header">
+                    <h3 class="section-title">Profile</h3>
+                    <p id="auth-user-greeting" class="auth-user-greeting"></p>
+                </div>
+
+                <div id="auth-view-logged-out" class="auth-shell">
+                    <div class="auth-card">
+                        <div class="auth-toggle-row" role="tablist" aria-label="Account access">
+                            <button id="show-login-btn" class="auth-toggle-btn active" type="button" role="tab" aria-selected="true">Log In</button>
+                            <button id="show-signup-btn" class="auth-toggle-btn" type="button" role="tab" aria-selected="false">Create Account</button>
+                        </div>
+                        <p class="auth-copy">Log in to manage your profile and account settings.</p>
+                        <p id="auth-feedback" class="auth-feedback" aria-live="polite"></p>
+
+                        <form id="login-form" class="auth-form" novalidate>
+                            <div class="form-grid auth-form-grid">
+                                <div class="form-field">
+                                    <label for="login-email">Email</label>
+                                    <input id="login-email" name="email" type="email" autocomplete="email" required>
+                                </div>
+                                <div class="form-field">
+                                    <label for="login-password">Password</label>
+                                    <input id="login-password" name="password" type="password" autocomplete="current-password" minlength="8" required>
+                                </div>
+                            </div>
+                            <button id="login-submit-btn" class="cta-button auth-submit-btn" type="submit">Log In</button>
+                        </form>
+
+                        <form id="signup-form" class="auth-form" hidden novalidate>
+                            <div class="form-grid auth-form-grid">
+                                <div class="form-field">
+                                    <label for="signup-name">Display Name</label>
+                                    <input id="signup-name" name="displayName" type="text" autocomplete="name" minlength="2" required>
+                                </div>
+                                <div class="form-field">
+                                    <label for="signup-email">Email</label>
+                                    <input id="signup-email" name="email" type="email" autocomplete="email" required>
+                                </div>
+                                <div class="form-field form-field-full">
+                                    <label for="signup-password">Password</label>
+                                    <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+                                    <small class="form-help">Use at least 8 characters.</small>
+                                </div>
+                            </div>
+                            <button id="signup-submit-btn" class="cta-button auth-submit-btn" type="submit">Create Account</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="auth-view-logged-in" class="profile-shell" hidden>
+                    <div class="profile-overview">
+                        <div class="profile-title-wrap">
+                            <h4 id="profile-display-name" class="profile-display-name">Plant Parent</h4>
+                            <p id="profile-email" class="profile-email"></p>
+                        </div>
+                        <div class="profile-meta-grid">
+                            <div class="summary-card">
+                                <p class="summary-label">Member Since</p>
+                                <p id="profile-member-since" class="summary-value">-</p>
+                            </div>
+                            <div class="summary-card">
+                                <p class="summary-label">Saved Plants</p>
+                                <p id="profile-total-plants" class="summary-value">0</p>
+                            </div>
+                            <div class="summary-card">
+                                <p class="summary-label">Account ID</p>
+                                <p id="profile-account-id" class="summary-value">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="profile-form" class="profile-form" novalidate>
+                        <div class="form-grid auth-form-grid">
+                            <div class="form-field">
+                                <label for="profile-name-input">Display Name</label>
+                                <input id="profile-name-input" name="displayName" type="text" minlength="2" required>
+                            </div>
+                            <div class="form-field">
+                                <label for="profile-email-input">Email</label>
+                                <input id="profile-email-input" type="email" disabled>
+                            </div>
+                        </div>
+                        <div class="profile-form-actions">
+                            <button id="profile-save-btn" class="cta-button auth-submit-btn" type="submit">Save Profile</button>
+                            <button id="profile-logout-btn" class="cta-button secondary" type="button">Log Out</button>
+                        </div>
+                        <p id="profile-feedback" class="auth-feedback" aria-live="polite"></p>
+                    </form>
+
+                    <div class="profile-feature-grid">
+                        <article class="profile-feature-card">
+                            <h5>Reminders</h5>
+                            <p id="profile-reminders-count">0 scheduled reminders</p>
+                        </article>
+                        <article class="profile-feature-card">
+                            <h5>Quiz Results</h5>
+                            <p id="profile-quiz-count">0 saved quiz results</p>
+                        </article>
+                        <article class="profile-feature-card">
+                            <h5>Saved Recommendations</h5>
+                            <p id="profile-recommendations-count">0 saved recommendations</p>
+                        </article>
+                        <article class="profile-feature-card">
+                            <h5>Preferences</h5>
+                            <p id="profile-preferences-status">No preferences saved yet</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <div class="site-footer">
+        <div>Green Thumb | Smarter plant care for every home.</div>
+        <div class="footer-copyright">© 2026 GreenThumb AI</div>
+    </div>
+</body>
+</html>

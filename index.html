@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Green Thumb AI</title>
+    <title>Green Thumb</title>
     <link rel="stylesheet" href="style.css">
     <style>
         #plant-name::placeholder {
@@ -18,193 +18,24 @@
             <div class="hero-section">
                 <div class="hero-top-row">
                     <div class="page-header">
-                        <h1 id="top">Green Thumb AI</h1>
+                        <h1 id="top">Green Thumb</h1>
                     </div>
                     <div class="top-nav">
                         <a class="nav-link active" href="index.html">Home</a>
-                        <a class="nav-link" href="html/gallery.html">Gallery</a>
-                        <a class="nav-link" href="html/aboutme.html">About Me</a>
+                        <a class="nav-link" href="html/mygarden.html">My Garden</a>
+                        <a id="nav-login-link" class="nav-link" href="html/profile.html#account">Log In</a>
+                        <a id="nav-profile-link" class="nav-link" href="html/profile.html" hidden>Profile</a>
+                        <button id="nav-logout-btn" class="nav-link nav-logout-btn" type="button" hidden>Log Out</button>
                     </div>
                 </div>
                 <div class="hero-body">
-                    <p class="hero-kicker">Smart Plant Care, Built for Real Life</p>
                     <h2 class="hero-title">Grow healthier plants with less guesswork.</h2>
                     <p class="hero-description">
-                        From personalized watering schedules to AI-powered recommendations, Green Thumb AI gives plant owners practical care guidance that adapts to your home and routine so you can stay consistent and confident.
+                        From personalized watering schedules to AI-powered recommendations, Green Thumb gives plant owners practical care guidance that adapts to your home and routine so you can stay consistent and confident.
                     </p>
                 </div>
                 <div class="hero-cta-row">
-                    <a class="cta-button" href="#tracker">Start Tracking Plants</a>
-                </div>
-            </div>
-
-            <div class="section-block tracker-section" id="tracker">
-                <div class="tracker-headings">
-                    <div class="tracker-heading-group">
-                        <h3 class="section-title">Plant Tracker</h3>
-                        <p class="section-text">Add your plants, track watering, and keep your plant care routine on schedule.</p>
-                    </div>
-                    <div class="tracker-heading-group">
-                        <h3 class="section-title">Your Garden</h3>
-                        <p class="section-text">Review saved plants, status, and watering progress in one place.</p>
-                    </div>
-                </div>
-                <div class="tracker-layout">
-                    <form id="plant-form" class="plant-form">
-                        <div class="form-grid">
-                            <div class="form-field form-field-full">
-                                <label for="plant-picker-search">Select Plant Type</label>
-                                <input
-                                    id="plant-picker-search"
-                                    name="plantPickerSearch"
-                                    type="text"
-                                    autocomplete="off"
-                                    placeholder="Search by common or scientific name"
-                                >
-                                <small class="form-help">Select your plant type, add a nickname, then save to your garden.</small>
-                                <p id="plant-autofill-status" class="plant-autofill-status" aria-live="polite"></p>
-                                <button
-                                    id="manual-entry-btn"
-                                    class="manual-entry-btn"
-                                    type="button"
-                                >
-                                    Can't find your plant? Add it manually
-                                </button>
-                                <div id="plant-picker-results" class="plant-picker-results" role="listbox" aria-label="Plant search results"></div>
-                            </div>
-                            <div class="form-field">
-                                <label for="plant-name">Plant Nickname</label>
-                                <input id="plant-name" name="plantName" type="text" placeholder="e.g. Living Room Fern" required>
-                                <small class="form-help">Give your plant a simple name you will recognize.</small>
-                            </div>
-                            <div class="form-field">
-                                <label for="plant-type">Plant Type</label>
-                                <input id="plant-type" name="plantType" type="text" list="plant-type-suggestions" placeholder="i.e. Hawaiian Umbrella Tree" required>
-                                <small class="form-help">Choose a type from search above, or enter one here.</small>
-                                <datalist id="plant-type-suggestions"></datalist>
-                            </div>
-                            <div class="form-field manual-only-field" hidden>
-                                <label for="light-needs">Light Needs</label>
-                                <select id="light-needs" name="lightNeeds">
-                                    <option value="">Select light level (e.g. Bright Indirect Light)</option>
-                                    <option value="Low Light">Low Light</option>
-                                    <option value="Medium Light">Medium Light</option>
-                                    <option value="Bright Indirect Light">Bright Indirect Light</option>
-                                    <option value="Direct Sun">Direct Sun</option>
-                                </select>
-                                <small class="form-help">Choose the light your plant gets most of the day.</small>
-                            </div>
-                            <div class="form-field manual-only-field" hidden>
-                                <label for="watering-needs">Watering Needs</label>
-                                <input
-                                    id="watering-needs"
-                                    name="wateringNeeds"
-                                    type="text"
-                                    placeholder="Select a plant to autofill"
-                                    readonly
-                                >
-                                <small class="form-help">Describe your watering style (e.g. weekly or when soil is dry).</small>
-                            </div>
-                            <div class="form-field manual-only-field" hidden>
-                                <label for="watering-frequency">Water every X days</label>
-                                <input id="watering-frequency" name="wateringFrequency" type="number" min="1" placeholder="e.g. 7">
-                                <small class="form-help">Enter the number of days between waterings.</small>
-                            </div>
-                            <div class="form-field form-field-full">
-                                <label>Tags</label>
-                                <div class="tag-options" role="group" aria-label="Plant tags">
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Indoor">
-                                        <span>Indoor</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Outdoor">
-                                        <span>Outdoor</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Herbs">
-                                        <span>Herbs</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Flowers">
-                                        <span>Flowers</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Succulents">
-                                        <span>Succulents</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Vegetables">
-                                        <span>Vegetables</span>
-                                    </label>
-                                    <label class="tag-option">
-                                        <input type="checkbox" name="plantTags" value="Favorites">
-                                        <span>Favorites</span>
-                                    </label>
-                                </div>
-                                <small class="form-help">Select one or more tags.</small>
-                            </div>
-                            <div class="form-field form-field-full">
-                                <label for="plant-notes">Notes</label>
-                                <textarea id="plant-notes" name="notes" rows="3" placeholder="Add care notes, reminders, or observations"></textarea>
-                                <small class="form-help">Optional notes for growth updates or care reminders.</small>
-                            </div>
-                        </div>
-                        <button class="cta-button" type="submit">Add Plant</button>
-                    </form>
-
-                    <div class="garden-panel">
-                        <div class="saved-plants">
-                            <div class="tracker-toolbar">
-                                <h4 class="saved-title">Saved Plants</h4>
-                                <div class="tracker-controls">
-                                    <label for="status-filter" class="filter-label">Filter</label>
-                                    <select id="status-filter" class="filter-select">
-                                        <option value="All Plants">All Plants</option>
-                                        <option value="Healthy">Healthy</option>
-                                        <option value="Needs Water">Needs Water</option>
-                                        <option value="Overdue">Overdue</option>
-                                    </select>
-                                    <details id="sort-menu" class="sort-menu">
-                                        <summary id="sort-menu-trigger" class="sort-pill-btn">Sort: Recently Added</summary>
-                                        <div id="sort-menu-options" class="sort-menu-options" role="listbox" aria-label="Sort saved plants">
-                                            <button type="button" class="sort-option-btn active" data-sort="newest_added">Newest added</button>
-                                            <button type="button" class="sort-option-btn" data-sort="oldest_added">Oldest added</button>
-                                            <button type="button" class="sort-option-btn" data-sort="least_recently_watered">Least recently watered</button>
-                                            <button type="button" class="sort-option-btn" data-sort="most_recently_watered">Most recently watered</button>
-                                            <button type="button" class="sort-option-btn" data-sort="name_az">Name A–Z</button>
-                                        </div>
-                                    </details>
-                                    <div class="expand-controls">
-                                        <button id="expand-all-btn" class="bulk-toggle-btn" type="button">Expand All</button>
-                                        <button id="collapse-all-btn" class="bulk-toggle-btn" type="button">Collapse All</button>
-                                    </div>
-                                </div>
-                            </div>
-                            <p class="saved-hint">Tip: click a plant card to expand or collapse details.</p>
-
-                            <p id="plant-count-summary" class="plant-count-summary">0 plants</p>
-
-                            <div class="dashboard-summary">
-                                <div class="summary-card">
-                                    <p class="summary-label">Total Plants</p>
-                                    <p id="summary-total-plants" class="summary-value">0</p>
-                                </div>
-                                <div class="summary-card">
-                                    <p class="summary-label">Plants Needing Water</p>
-                                    <p id="summary-needs-water" class="summary-value">0</p>
-                                </div>
-                                <div class="summary-card">
-                                    <p class="summary-label">Overdue Plants</p>
-                                    <p id="summary-overdue" class="summary-value">0</p>
-                                </div>
-                            </div>
-
-                            <div id="plant-cards" class="plant-card-grid">
-                                <p id="empty-state" class="empty-state">No plants saved yet. Add your first plant above.</p>
-                            </div>
-                        </div>
-                    </div>
+                    <a class="cta-button" href="html/mygarden.html#tracker">Start Tracking Plants</a>
                 </div>
             </div>
 
@@ -242,7 +73,7 @@
 
             <div class="section-block">
                 <h3 class="section-title">Featured Plants</h3>
-                <p class="section-text">See how Green Thumb AI supports popular plants with clear, personalized care.</p>
+                <p class="section-text">See how Green Thumb supports popular plants with clear, personalized care.</p>
                 <div class="index-images">
                     <div class="featured-plant">
                         <a class="image-link" href="https://www.lulasgarden.com/collections/bamboo-gardens" target="_blank">
@@ -287,17 +118,17 @@
                 <div class="solution-card">
                     <h3 class="section-title">How it helps</h3>
                     <p class="section-text">
-                        Green Thumb AI gives simple, personalized guidance so you know when to water, how much to water, and what to do next for each plant.
+                        Green Thumb gives simple, personalized guidance so you know when to water, how much to water, and what to do next for each plant.
                     </p>
                 </div>
             </div>
 
             <div class="section-block final-cta">
                 <h3 class="section-title">Ready to make plant care simpler?</h3>
-                <p class="section-text">Start tracking your plants today and let Green Thumb AI guide your next steps.</p>
+                <p class="section-text">Start tracking your plants today and let Green Thumb guide your next steps.</p>
                 <div class="cta-actions">
                     <a id="quiz-preview-trigger" class="cta-button" href="#">Start Your Plant Quiz</a>
-                    <a class="cta-button secondary" href="#tracker">Track My Plants</a>
+                    <a class="cta-button secondary" href="html/mygarden.html#tracker">Track My Plants</a>
                 </div>
             </div>
         </div>
@@ -330,7 +161,7 @@
     </div>
 
     <div class="site-footer">
-        <div>Green Thumb AI | Smarter plant care for every home.</div>
+        <div>Green Thumb | Smarter plant care for every home.</div>
         <div class="footer-copyright">© 2026 GreenThumb AI</div>
     </div>
 </body>
