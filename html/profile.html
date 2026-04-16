@@ -41,9 +41,9 @@
                     <div class="auth-card">
                         <div class="auth-toggle-row" role="tablist" aria-label="Account access">
                             <button id="show-login-btn" class="auth-toggle-btn active" type="button" role="tab" aria-selected="true">Log In</button>
-                            <button id="show-signup-btn" class="auth-toggle-btn" type="button" role="tab" aria-selected="false">Create Account</button>
+                            <button id="show-signup-btn" class="auth-toggle-btn" type="button" role="tab" aria-selected="false" data-auth-create-cta>Create Account</button>
                         </div>
-                        <p class="auth-copy">Log in to manage your profile and account settings.</p>
+                        <p class="auth-copy">Create an account to keep your plants and watering tasks private across visits. Already have one? Log in here.</p>
                         <p id="auth-feedback" class="auth-feedback" aria-live="polite"></p>
 
                         <form id="login-form" class="auth-form" novalidate>
@@ -76,7 +76,7 @@
                                     <small class="form-help">Use at least 8 characters.</small>
                                 </div>
                             </div>
-                            <button id="signup-submit-btn" class="cta-button auth-submit-btn" type="submit">Create Account</button>
+                            <button id="signup-submit-btn" class="cta-button auth-submit-btn" type="submit" data-auth-create-cta>Create Account</button>
                         </form>
                     </div>
                 </div>
@@ -103,32 +103,16 @@
                         </div>
                     </div>
 
-                    <form id="profile-form" class="profile-form" novalidate>
-                        <div class="form-grid auth-form-grid">
-                            <div class="form-field">
-                                <label for="profile-name-input">Display Name</label>
-                                <input id="profile-name-input" name="displayName" type="text" minlength="2" required>
-                            </div>
-                            <div class="form-field">
-                                <label for="profile-email-input">Email</label>
-                                <input id="profile-email-input" type="email" disabled>
-                            </div>
-                        </div>
-                        <div class="profile-form-actions">
-                            <button id="profile-save-btn" class="cta-button auth-submit-btn" type="submit">Save Profile</button>
-                            <button id="profile-logout-btn" class="cta-button secondary" type="button">Log Out</button>
-                        </div>
-                        <p id="profile-feedback" class="auth-feedback" aria-live="polite"></p>
-                    </form>
-
                     <div class="profile-feature-grid">
                         <article class="profile-feature-card">
                             <h5>Reminders</h5>
                             <p id="profile-reminders-count">0 scheduled reminders</p>
+                            <a class="profile-card-action" href="mygarden.html#tracker">Go to Garden</a>
                         </article>
                         <article class="profile-feature-card">
                             <h5>Quiz Results</h5>
                             <p id="profile-quiz-count">0 saved quiz results</p>
+                            <a class="profile-card-action" href="../index.html">Take Another Quiz</a>
                         </article>
                         <article class="profile-feature-card">
                             <h5>Saved Recommendations</h5>
@@ -138,6 +122,10 @@
                             <h5>Preferences</h5>
                             <p id="profile-preferences-status">No preferences saved yet</p>
                         </article>
+                    </div>
+
+                    <div class="profile-logout-section">
+                        <button id="profile-logout-btn" class="cta-button secondary" type="button">Log Out</button>
                     </div>
                 </div>
             </section>

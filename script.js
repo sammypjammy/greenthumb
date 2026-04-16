@@ -9,7 +9,8 @@ const plantTagInputs = Array.from(document.querySelectorAll('input[name="plantTa
 const plantCountSummary = document.getElementById("plant-count-summary");
 const summaryTotalPlants = document.getElementById("summary-total-plants");
 const summaryNeedsWater = document.getElementById("summary-needs-water");
-const summaryOverdue = document.getElementById("summary-overdue");
+const careTaskList = document.getElementById("care-task-list");
+const taskCountSummary = document.getElementById("task-count-summary");
 const expandAllButton = document.getElementById("expand-all-btn");
 const collapseAllButton = document.getElementById("collapse-all-btn");
 const plantTypeSuggestions = document.getElementById("plant-type-suggestions");
@@ -51,8 +52,6 @@ const loginForm = document.getElementById("login-form");
 const signupForm = document.getElementById("signup-form");
 const loginSubmitButton = document.getElementById("login-submit-btn");
 const signupSubmitButton = document.getElementById("signup-submit-btn");
-const profileForm = document.getElementById("profile-form");
-const profileSaveButton = document.getElementById("profile-save-btn");
 const profileLogoutButton = document.getElementById("profile-logout-btn");
 const profileFeedback = document.getElementById("profile-feedback");
 const profileDisplayName = document.getElementById("profile-display-name");
@@ -60,30 +59,32 @@ const profileEmail = document.getElementById("profile-email");
 const profileMemberSince = document.getElementById("profile-member-since");
 const profileTotalPlants = document.getElementById("profile-total-plants");
 const profileAccountId = document.getElementById("profile-account-id");
-const profileNameInput = document.getElementById("profile-name-input");
-const profileEmailInput = document.getElementById("profile-email-input");
 const profileRemindersCount = document.getElementById("profile-reminders-count");
 const profileSavedInfoCount = document.getElementById("profile-saved-info-count");
 const profileQuizCount = document.getElementById("profile-quiz-count");
 const profileRecommendationsCount = document.getElementById("profile-recommendations-count");
 const profilePreferencesStatus = document.getElementById("profile-preferences-status");
+const plantCtaElements = Array.from(document.querySelectorAll("[data-plant-cta]"));
+const plantEmptyCopyElements = Array.from(document.querySelectorAll("[data-plant-empty-copy]"));
+const authCreateCtaElements = Array.from(document.querySelectorAll("[data-auth-create-cta]"));
 const hasTrackerUI = Boolean(
     plantForm &&
     plantCards &&
     plantCountSummary &&
     summaryTotalPlants &&
     summaryNeedsWater &&
-    summaryOverdue &&
     statusFilter
 );
-const EMPTY_STATE_TEXT = "No plants saved yet. Add your first plant above.";
+const hasTaskUI = Boolean(careTaskList && taskCountSummary);
 const LEGACY_PLANTS_STORAGE_KEY = "greenThumbPlants";
 const LEGACY_SORT_STORAGE_KEY = "greenThumbPlantSort";
 const USERS_STORAGE_KEY = "greenThumbUsers";
 const USER_SESSION_STORAGE_KEY = "greenThumbSession";
 const USER_DATA_STORAGE_KEY = "greenThumbUserData";
 const SORT_STORAGE_KEY = "greenThumbPlantSortByUser";
+const UPCOMING_TASK_WINDOW_DAYS = 3;
 let plants = [];
+let careTasks = [];
 let activeFilter = "All Plants";
 let activeTagFilter = "All Tags";
 let activeSort = "newest_added";
@@ -95,6 +96,19 @@ let authMode = "login";
 let activeSessionToast = null;
 const DEFAULT_PICKER_RESULTS = 6;
 const MAX_PICKER_RESULTS = 10;
+
+function getStoredSessionUserId() {
+    const activeSession = getSession();
+    return activeSession && activeSession.userId ? activeSession.userId : "";
+}
+
+function syncAuthCreateCtas(isAuthenticated) {
+    authCreateCtaElements.forEach(function (element) {
+        element.hidden = isAuthenticated;
+    });
+}
+
+syncAuthCreateCtas(Boolean(getStoredSessionUserId()));
 
 function getSessionToastContainer() {
     let container = document.getElementById("session-toast-container");
@@ -223,6 +237,7 @@ function saveUserDataStore(userDataStore) {
 function createDefaultUserDataRecord() {
     return {
         plants: [],
+        careTasks: [],
         reminders: [],
         quizResults: [],
         savedRecommendations: [],
@@ -255,6 +270,293 @@ function updateUserDataRecord(userId, updater) {
     store[userId] = nextRecord;
     saveUserDataStore(store);
     return nextRecord;
+}
+
+const plantDataService = {
+    async listPlants(userId) {
+        assertUserScope(userId);
+        const record = getUserDataRecord(userId, true) || createDefaultUserDataRecord();
+        let storedPlants = Array.isArray(record.plants) ? record.plants : [];
+        const alreadyMigrated = Boolean(record.meta && record.meta.legacyPlantsMigrated);
+
+        if (storedPlants.length === 0 && !alreadyMigrated) {
+            storedPlants = getLegacyPlants();
+        }
+
+        // Query-level ownership filter: legacy plants can be imported, but owned records never cross users.
+        const scopedPlants = storedPlants.filter(function (plant) {
+            return !plant.userId || plant.userId === userId;
+        }).map(function (plant, index) {
+            return normalizePlantRecord(plant, userId, index);
+        });
+
+        persistScopedPlants(userId, scopedPlants, true);
+        return scopedPlants;
+    },
+
+    async createPlant(userId, input) {
+        assertUserScope(userId);
+        const now = new Date().toISOString();
+        const plant = normalizePlantRecord({
+            ...input,
+            id: generateId("plant"),
+            userId,
+            createdAt: now,
+            updatedAt: now,
+            lastWateredDate: input.lastWateredDate || formatDateForInput(getStartOfToday())
+        }, userId);
+        const currentPlants = await this.listPlants(userId);
+        persistScopedPlants(userId, [plant].concat(currentPlants), true);
+        taskDataService.ensureWateringTaskForPlant(userId, plant);
+        return plant;
+    },
+
+    async updatePlant(userId, plantId, input) {
+        assertUserScope(userId);
+        let updatedPlant = null;
+        const currentPlants = await this.listPlants(userId);
+        const nextPlants = currentPlants.map(function (plant) {
+            if (plant.id !== plantId) {
+                return plant;
+            }
+            updatedPlant = normalizePlantRecord({
+                ...plant,
+                ...input,
+                userId,
+                createdAt: plant.createdAt,
+                updatedAt: new Date().toISOString()
+            }, userId);
+            return updatedPlant;
+        });
+
+        if (!updatedPlant) {
+            throw new Error("Plant not found for this user.");
+        }
+
+        persistScopedPlants(userId, nextPlants, true);
+        taskDataService.syncWateringTaskForPlant(userId, updatedPlant);
+        return updatedPlant;
+    },
+
+    async deletePlant(userId, plantId) {
+        assertUserScope(userId);
+        const currentPlants = await this.listPlants(userId);
+        const nextPlants = currentPlants.filter(function (plant) {
+            return plant.id !== plantId;
+        });
+
+        if (nextPlants.length === currentPlants.length) {
+            throw new Error("Plant not found for this user.");
+        }
+
+        persistScopedPlants(userId, nextPlants, true);
+        taskDataService.deleteTasksForPlant(userId, plantId);
+    }
+};
+
+const taskDataService = {
+    listTasks(userId) {
+        assertUserScope(userId);
+        const record = getUserDataRecord(userId, true) || createDefaultUserDataRecord();
+        const tasks = Array.isArray(record.careTasks) ? record.careTasks : [];
+        return tasks.filter(function (task) {
+            return task.userId === userId;
+        }).map(function (task) {
+            return normalizeTaskRecord(task, userId);
+        });
+    },
+
+    listOpenTasks(userId) {
+        return this.listTasks(userId).filter(function (task) {
+            return task.status !== "completed";
+        });
+    },
+
+    getVisibleTasks(tasks) {
+        return sortOpenTasks(tasks.filter(isTaskVisibleInUpcomingWindow));
+    },
+
+    listVisibleTasks(userId) {
+        return this.getVisibleTasks(this.listTasks(userId));
+    },
+
+    reconcileWateringTasks(userId, userPlants) {
+        assertUserScope(userId);
+        const existingTasks = this.listTasks(userId);
+        const plantIds = new Set(userPlants.map(function (plant) {
+            return plant.id;
+        }));
+        let nextTasks = existingTasks.filter(function (task) {
+            return plantIds.has(task.plantId);
+        });
+
+        userPlants.forEach(function (plant) {
+            const hasOpenWateringTask = nextTasks.some(function (task) {
+                return task.plantId === plant.id && task.type === "watering" && task.status === "open";
+            });
+            if (!hasOpenWateringTask && shouldCreateWateringTaskForPlant(plant)) {
+                nextTasks.push(createWateringTask(userId, plant));
+            }
+        });
+
+        persistScopedTasks(userId, nextTasks);
+        return nextTasks;
+    },
+
+    ensureWateringTaskForPlant(userId, plant) {
+        const tasks = this.listTasks(userId);
+        const hasOpenWateringTask = tasks.some(function (task) {
+            return task.plantId === plant.id && task.type === "watering" && task.status === "open";
+        });
+        if (hasOpenWateringTask || !shouldCreateWateringTaskForPlant(plant)) {
+            return;
+        }
+        persistScopedTasks(userId, tasks.concat(createWateringTask(userId, plant)));
+    },
+
+    syncWateringTaskForPlant(userId, plant) {
+        const tasks = this.listTasks(userId);
+        const dueDate = getNextWateringDateString(plant);
+        const nextTasks = tasks.map(function (task) {
+            if (task.plantId !== plant.id || task.type !== "watering" || task.status === "completed") {
+                return task;
+            }
+            return normalizeTaskRecord({
+                ...task,
+                title: `Water ${plant.plantName}`,
+                dueDate,
+                updatedAt: new Date().toISOString()
+            }, userId);
+        });
+        persistScopedTasks(userId, nextTasks);
+    },
+
+    deleteTasksForPlant(userId, plantId) {
+        const nextTasks = this.listTasks(userId).filter(function (task) {
+            return task.plantId !== plantId;
+        });
+        persistScopedTasks(userId, nextTasks);
+    },
+
+    completeTask(userId, taskId) {
+        assertUserScope(userId);
+        const tasks = this.listTasks(userId);
+        let completedTask = null;
+        const today = formatDateForInput(getStartOfToday());
+        const nextTasks = tasks.map(function (task) {
+            if (task.id !== taskId) {
+                return task;
+            }
+            completedTask = normalizeTaskRecord({
+                ...task,
+                status: "completed",
+                completedAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }, userId);
+            return completedTask;
+        });
+
+        if (!completedTask) {
+            throw new Error("Task not found for this user.");
+        }
+
+        const plant = plants.find(function (currentPlant) {
+            return currentPlant.id === completedTask.plantId;
+        });
+        const finalTasks = nextTasks.slice();
+        if (plant && completedTask.type === "watering") {
+            plant.lastWateredDate = today;
+            plant.updatedAt = new Date().toISOString();
+            persistScopedPlants(userId, plants, true);
+        }
+
+        persistScopedTasks(userId, finalTasks);
+        return completedTask;
+    },
+
+    completeOpenWateringTaskForPlant(userId, plantId) {
+        assertUserScope(userId);
+        const tasks = this.listTasks(userId);
+        const today = formatDateForInput(getStartOfToday());
+        const now = new Date().toISOString();
+        let completedAnyTask = false;
+        const nextTasks = tasks.map(function (task) {
+            if (task.plantId !== plantId || task.type !== "watering" || task.status === "completed") {
+                return task;
+            }
+            completedAnyTask = true;
+            return normalizeTaskRecord({
+                ...task,
+                status: "completed",
+                completedAt: now,
+                updatedAt: now
+            }, userId);
+        });
+
+        const plant = plants.find(function (currentPlant) {
+            return currentPlant.id === plantId;
+        });
+        if (!plant) {
+            throw new Error("Plant not found for this user.");
+        }
+
+        plant.lastWateredDate = today;
+        plant.updatedAt = now;
+        persistScopedPlants(userId, plants, true);
+
+        // Keep plant watering and task completion as one state transition to avoid duplicate open tasks.
+        const finalTasks = nextTasks.filter(function (task) {
+            return !(task.plantId === plantId && task.type === "watering" && task.status === "open");
+        });
+        persistScopedTasks(userId, finalTasks);
+        return completedAnyTask;
+    }
+};
+
+function assertUserScope(userId) {
+    if (!currentUser || currentUser.id !== userId) {
+        throw new Error("You must be signed in to manage this garden.");
+    }
+}
+
+function persistScopedPlants(userId, scopedPlants, legacyPlantsMigrated) {
+    updateUserDataRecord(userId, function (record) {
+        const safeRecord = record || createDefaultUserDataRecord();
+        return {
+            ...safeRecord,
+            plants: scopedPlants.map(function (plant) {
+                return normalizePlantRecord(plant, userId);
+            }),
+            careTasks: Array.isArray(safeRecord.careTasks) ? safeRecord.careTasks : [],
+            reminders: Array.isArray(safeRecord.reminders) ? safeRecord.reminders : [],
+            quizResults: Array.isArray(safeRecord.quizResults) ? safeRecord.quizResults : [],
+            savedRecommendations: Array.isArray(safeRecord.savedRecommendations) ? safeRecord.savedRecommendations : [],
+            preferences: safeRecord.preferences && typeof safeRecord.preferences === "object" ? safeRecord.preferences : {},
+            meta: {
+                legacyPlantsMigrated: Boolean(legacyPlantsMigrated || (safeRecord.meta && safeRecord.meta.legacyPlantsMigrated))
+            }
+        };
+    });
+}
+
+function persistScopedTasks(userId, scopedTasks) {
+    updateUserDataRecord(userId, function (record) {
+        const safeRecord = record || createDefaultUserDataRecord();
+        return {
+            ...safeRecord,
+            plants: Array.isArray(safeRecord.plants) ? safeRecord.plants : [],
+            careTasks: scopedTasks.map(function (task) {
+                return normalizeTaskRecord(task, userId);
+            }),
+            reminders: Array.isArray(safeRecord.reminders) ? safeRecord.reminders : [],
+            quizResults: Array.isArray(safeRecord.quizResults) ? safeRecord.quizResults : [],
+            savedRecommendations: Array.isArray(safeRecord.savedRecommendations) ? safeRecord.savedRecommendations : [],
+            preferences: safeRecord.preferences && typeof safeRecord.preferences === "object" ? safeRecord.preferences : {},
+            meta: {
+                legacyPlantsMigrated: Boolean(safeRecord.meta && safeRecord.meta.legacyPlantsMigrated)
+            }
+        };
+    });
 }
 
 function getLegacyPlants() {
@@ -330,6 +632,7 @@ function setAuthMode(nextMode) {
     showSignupButton.setAttribute("aria-selected", showSignup ? "true" : "false");
     showLoginButton.setAttribute("aria-selected", showSignup ? "false" : "true");
     setStatusMessage(authFeedback, "", "");
+    syncContextualCopyUI();
 }
 
 function setButtonLoadingState(button, isLoading, loadingLabel, defaultLabel) {
@@ -365,6 +668,64 @@ function getDefaultProfileName(user) {
     return user.email || "Plant Parent";
 }
 
+function getCurrentUserPlantCount() {
+    const activeSession = currentUser ? null : getSession();
+    const sessionUserId = currentUser ? currentUser.id : (activeSession && activeSession.userId);
+    if (!sessionUserId) {
+        return 0;
+    }
+    const record = getUserDataRecord(sessionUserId, false);
+    return record && Array.isArray(record.plants) ? record.plants.length : plants.length;
+}
+
+function getPlantTagPreferences(userPlants) {
+    const tagCounts = {};
+    (Array.isArray(userPlants) ? userPlants : []).forEach(function (plant) {
+        normalizeTags(plant.tags).forEach(function (tag) {
+            const normalizedTag = tag.toLowerCase();
+            tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
+        });
+    });
+
+    const preferences = [];
+    if ((tagCounts.indoor || 0) >= (tagCounts.outdoor || 0) && tagCounts.indoor) {
+        preferences.push("Prefers indoor plants");
+    }
+    if (tagCounts.outdoor) {
+        preferences.push("Enjoys outdoor gardening");
+    }
+    if (tagCounts.herbs) {
+        preferences.push("Interested in herbs");
+    }
+    if (tagCounts.flowers) {
+        preferences.push("Likes flowering plants");
+    }
+    if (tagCounts.succulents) {
+        preferences.push("Likes low-maintenance succulents");
+    }
+    return preferences.slice(0, 3);
+}
+
+function syncContextualCopyUI() {
+    const isAuthenticated = Boolean(currentUser || getStoredSessionUserId());
+    const hasPlants = getCurrentUserPlantCount() > 0;
+    const plantCtaText = hasPlants ? "Add another plant" : "Add your first plant";
+    const emptyPlantCopy = hasPlants
+        ? "Add another plant whenever your collection grows."
+        : "Add your first plant to start seeing watering status and care tasks here.";
+    const emptyTaskCopy = hasPlants
+        ? "New watering tasks will appear here when your plants need attention."
+        : "Add your first plant and Green Thumb will create watering tasks automatically.";
+
+    plantCtaElements.forEach(function (element) {
+        element.textContent = plantCtaText;
+    });
+    plantEmptyCopyElements.forEach(function (element) {
+        element.textContent = element.closest(".care-task-list") ? emptyTaskCopy : emptyPlantCopy;
+    });
+    syncAuthCreateCtas(isAuthenticated);
+}
+
 function syncProfileUI() {
     if (!currentUser) {
         if (authUserGreeting) {
@@ -386,12 +747,6 @@ function syncProfileUI() {
             profileAccountId.textContent = "-";
             profileAccountId.title = "";
         }
-        if (profileNameInput) {
-            profileNameInput.value = "";
-        }
-        if (profileEmailInput) {
-            profileEmailInput.value = "";
-        }
         if (profileRemindersCount) {
             profileRemindersCount.textContent = "0 scheduled reminders";
         }
@@ -407,7 +762,6 @@ function syncProfileUI() {
         if (profilePreferencesStatus) {
             profilePreferencesStatus.textContent = "No preferences saved yet";
         }
-        syncProfileSaveState();
         return;
     }
     const userData = getUserDataRecord(currentUser.id, true) || createDefaultUserDataRecord();
@@ -422,12 +776,6 @@ function syncProfileUI() {
     if (profileEmail) {
         profileEmail.textContent = currentUser.email;
     }
-    if (profileNameInput) {
-        profileNameInput.value = displayName;
-    }
-    if (profileEmailInput) {
-        profileEmailInput.value = currentUser.email;
-    }
     if (profileMemberSince) {
         profileMemberSince.textContent = formatMemberSince(currentUser.createdAt);
     }
@@ -440,7 +788,12 @@ function syncProfileUI() {
     }
     if (profileRemindersCount) {
         const reminders = Array.isArray(userData.reminders) ? userData.reminders : [];
-        profileRemindersCount.textContent = `${reminders.length} scheduled reminders`;
+        const careTaskCount = Array.isArray(userData.careTasks)
+            ? userData.careTasks.filter(function (task) {
+                return task.status !== "completed";
+            }).length
+            : 0;
+        profileRemindersCount.textContent = `${reminders.length + careTaskCount} scheduled reminders`;
     }
     if (profileQuizCount) {
         const quizResults = Array.isArray(userData.quizResults) ? userData.quizResults : [];
@@ -456,31 +809,14 @@ function syncProfileUI() {
         profileSavedInfoCount.textContent = `${quizResults.length + recommendations.length} saved items`;
     }
     if (profilePreferencesStatus) {
-        const hasPreferences = userData.preferences && Object.keys(userData.preferences).length > 0;
-        profilePreferencesStatus.textContent = hasPreferences
-            ? "Preferences configured"
-            : "No preferences saved yet";
+        const inferredPreferences = getPlantTagPreferences(userData.plants);
+        profilePreferencesStatus.textContent = inferredPreferences.length > 0
+            ? inferredPreferences.join(" • ")
+            : "Add plant tags to build simple preferences";
     }
     if (navProfileLink) {
         navProfileLink.setAttribute("aria-label", `${displayName} profile`);
     }
-    syncProfileSaveState();
-}
-
-function syncProfileSaveState() {
-    if (!profileSaveButton || !profileNameInput) {
-        return;
-    }
-    if (!currentUser) {
-        profileSaveButton.hidden = true;
-        profileSaveButton.disabled = true;
-        return;
-    }
-    const currentName = getDefaultProfileName(currentUser);
-    const inputName = profileNameInput.value.trim();
-    const hasChanges = inputName.length >= 2 && inputName !== currentName;
-    profileSaveButton.hidden = !hasChanges;
-    profileSaveButton.disabled = !hasChanges;
 }
 
 function syncNavAuthUI() {
@@ -526,16 +862,18 @@ function requireAuthenticatedUser() {
     return false;
 }
 
-function logoutCurrentUser() {
+async function logoutCurrentUser() {
     const logoutName = currentUser ? getDefaultProfileName(currentUser) : "";
     currentUser = null;
+    plants = [];
+    careTasks = [];
     clearSession();
     if (hasTrackerUI) {
         resetPlantForm();
     }
     setStatusMessage(profileFeedback, "", "");
     setStatusMessage(authFeedback, "You are logged out.", "success");
-    applyAuthState();
+    await applyAuthState();
     showSessionToast(
         logoutName ? `${logoutName}, you are now logged out.` : "You are now logged out.",
         "info"
@@ -608,30 +946,6 @@ async function loginUser(email, password) {
     currentUser = user;
     setSession(user.id);
     return user;
-}
-
-function updateCurrentUserProfile(displayName) {
-    if (!currentUser) {
-        throw new Error("You must be logged in to update your profile.");
-    }
-    const normalizedName = String(displayName || "").trim();
-    if (normalizedName.length < 2) {
-        throw new Error("Display name must be at least 2 characters.");
-    }
-
-    const users = getStoredUsers();
-    const nextUsers = users.map(function (user) {
-        if (user.id !== currentUser.id) {
-            return user;
-        }
-        return {
-            ...user,
-            displayName: normalizedName,
-            updatedAt: new Date().toISOString()
-        };
-    });
-    saveUsers(nextUsers);
-    currentUser = getUserById(currentUser.id);
 }
 
 function updateExpandCollapseControls() {
@@ -817,7 +1131,7 @@ function setManualEntryMode(isManual, options) {
     if (manualEntryButton) {
         manualEntryButton.textContent = isManual
             ? "Use plant database instead"
-            : "Add Plant Manually";
+            : "Add Plant Details Manually";
     }
 
     if (!preserveStatus) {
@@ -1466,6 +1780,10 @@ function setSelectedTags(tags) {
 }
 
 function getPlantCreatedAt(plant, index) {
+    const createdAtTimestamp = getSortValueTimestamp(plant.createdAt, 0);
+    if (createdAtTimestamp) {
+        return createdAtTimestamp;
+    }
     const parsedId = Number.parseInt(plant.id, 10);
     if (Number.isFinite(parsedId)) {
         return parsedId;
@@ -1555,96 +1873,51 @@ function loadSortPreference() {
 function updateDashboardSummary() {
     const totalPlants = plants.length;
     let needsWaterCount = 0;
-    let overdueCount = 0;
 
     plants.forEach(function (plant) {
         const status = getPlantStatus(plant);
-        if (status === "Needs Water") {
+        if (status === "Needs Water" || status === "Overdue") {
             needsWaterCount += 1;
-        }
-        if (status === "Overdue") {
-            overdueCount += 1;
         }
     });
 
     summaryTotalPlants.textContent = String(totalPlants);
     summaryNeedsWater.textContent = String(needsWaterCount);
-    summaryOverdue.textContent = String(overdueCount);
 }
 
-function savePlants() {
-    if (!currentUser) {
-        return;
-    }
-
-    const normalizedPlants = plants.map(function (plant) {
-        return normalizePlantRecord(plant, currentUser.id);
-    });
-    plants = normalizedPlants;
-
-    updateUserDataRecord(currentUser.id, function (record) {
-        const safeRecord = record || createDefaultUserDataRecord();
-        return {
-            ...safeRecord,
-            plants: normalizedPlants,
-            reminders: Array.isArray(safeRecord.reminders) ? safeRecord.reminders : [],
-            quizResults: Array.isArray(safeRecord.quizResults) ? safeRecord.quizResults : [],
-            savedRecommendations: Array.isArray(safeRecord.savedRecommendations) ? safeRecord.savedRecommendations : [],
-            preferences: safeRecord.preferences && typeof safeRecord.preferences === "object" ? safeRecord.preferences : {},
-            meta: {
-                legacyPlantsMigrated: Boolean(safeRecord.meta && safeRecord.meta.legacyPlantsMigrated)
-            }
-        };
-    });
-    syncProfileUI();
-}
-
-function loadPlants() {
+async function loadPlants() {
     if (!currentUser) {
         plants = [];
         return;
     }
 
-    const userRecord = getUserDataRecord(currentUser.id, true) || createDefaultUserDataRecord();
-    let storedPlants = Array.isArray(userRecord.plants) ? userRecord.plants : [];
-    const alreadyMigrated = Boolean(userRecord.meta && userRecord.meta.legacyPlantsMigrated);
+    await reloadGardenStateFromStorage();
+}
 
-    if (storedPlants.length === 0 && !alreadyMigrated) {
-        const legacyPlants = getLegacyPlants();
-        if (legacyPlants.length > 0) {
-            storedPlants = legacyPlants;
-        }
+async function reloadGardenStateFromStorage() {
+    if (!currentUser) {
+        plants = [];
+        careTasks = [];
+        return;
     }
-
-    plants = storedPlants.map(function (plant, index) {
-        return normalizePlantRecord(plant, currentUser.id, index);
-    });
-
-    updateUserDataRecord(currentUser.id, function (record) {
-        const safeRecord = record || createDefaultUserDataRecord();
-        return {
-            ...safeRecord,
-            plants: plants,
-            reminders: Array.isArray(safeRecord.reminders) ? safeRecord.reminders : [],
-            quizResults: Array.isArray(safeRecord.quizResults) ? safeRecord.quizResults : [],
-            savedRecommendations: Array.isArray(safeRecord.savedRecommendations) ? safeRecord.savedRecommendations : [],
-            preferences: safeRecord.preferences && typeof safeRecord.preferences === "object" ? safeRecord.preferences : {},
-            meta: {
-                legacyPlantsMigrated: true
-            }
-        };
-    });
+    plants = await plantDataService.listPlants(currentUser.id);
+    careTasks = taskDataService.reconcileWateringTasks(currentUser.id, plants);
 }
 
 function normalizePlantRecord(plant, userId, fallbackIndex) {
     const safePlant = plant && typeof plant === "object" ? plant : {};
     const fallbackCreatedAt = typeof fallbackIndex === "number"
-        ? Date.now() - fallbackIndex
-        : Date.now();
+        ? new Date(Date.now() - fallbackIndex).toISOString()
+        : new Date().toISOString();
+    const createdAt = safePlant.createdAt || fallbackCreatedAt;
+    const updatedAt = safePlant.updatedAt || createdAt;
+    const customName = String(safePlant.customName || safePlant.plantName || "").trim();
+
     return {
-        id: String(safePlant.id || fallbackCreatedAt),
+        id: String(safePlant.id || generateId("plant")),
         userId,
-        plantName: String(safePlant.plantName || "").trim(),
+        plantName: customName,
+        customName,
         plantType: String(safePlant.plantType || "").trim(),
         plantProfileId: String(safePlant.plantProfileId || "").trim(),
         scientificName: String(safePlant.scientificName || "").trim(),
@@ -1653,12 +1926,241 @@ function normalizePlantRecord(plant, userId, fallbackIndex) {
         wateringFrequency: String(safePlant.wateringFrequency || "7").trim(),
         notes: String(safePlant.notes || "").trim(),
         tags: normalizeTags(safePlant.tags),
-        lastWateredDate: safePlant.lastWateredDate || formatDateForInput(getStartOfToday())
+        lastWateredDate: safePlant.lastWateredDate || formatDateForInput(getStartOfToday()),
+        createdAt,
+        updatedAt
     };
+}
+
+function normalizeTaskRecord(task, userId) {
+    const safeTask = task && typeof task === "object" ? task : {};
+    const now = new Date().toISOString();
+    return {
+        id: String(safeTask.id || generateId("task")),
+        userId,
+        plantId: String(safeTask.plantId || "").trim(),
+        type: safeTask.type === "watering" ? "watering" : "watering",
+        title: String(safeTask.title || "Water plant").trim(),
+        dueDate: String(safeTask.dueDate || formatDateForInput(getStartOfToday())).trim(),
+        status: safeTask.status === "completed" ? "completed" : "open",
+        completedAt: safeTask.completedAt || null,
+        createdAt: safeTask.createdAt || now,
+        updatedAt: safeTask.updatedAt || now
+    };
+}
+
+function getNextWateringDateString(plant) {
+    const lastWatered = parseDateInput(plant.lastWateredDate) || getStartOfToday();
+    const frequencyDays = Number.parseInt(plant.wateringFrequency, 10);
+    const safeFrequency = Number.isFinite(frequencyDays) && frequencyDays > 0 ? frequencyDays : 7;
+    return formatDateForInput(addDays(lastWatered, safeFrequency));
+}
+
+function shouldCreateWateringTaskForPlant(plant) {
+    const nextWateringDate = parseDateInput(getNextWateringDateString(plant));
+    if (!nextWateringDate) {
+        return false;
+    }
+    // Tasks are generated only when action is actually due, so completing a task does not recreate it immediately.
+    return getDayDifferenceFromToday(nextWateringDate) <= 0;
+}
+
+function createWateringTask(userId, plant) {
+    const now = new Date().toISOString();
+    return normalizeTaskRecord({
+        id: generateId("task"),
+        userId,
+        plantId: plant.id,
+        type: "watering",
+        title: `Water ${plant.plantName}`,
+        dueDate: getNextWateringDateString(plant),
+        status: "open",
+        createdAt: now,
+        updatedAt: now
+    }, userId);
+}
+
+function getTaskDueLabel(task) {
+    const parsedDueDate = parseDateInput(task.dueDate);
+    if (!parsedDueDate) {
+        return "Due date unknown";
+    }
+    const relativeLabel = getRelativeNextWateringLabel(parsedDueDate);
+    return relativeLabel.startsWith("overdue") ? relativeLabel : `Due ${relativeLabel}`;
+}
+
+function getTaskUrgencyClass(task) {
+    const parsedDueDate = parseDateInput(task.dueDate);
+    if (!parsedDueDate) {
+        return "";
+    }
+    const dayDifference = getDayDifferenceFromToday(parsedDueDate);
+    if (dayDifference < 0) {
+        return "overdue";
+    }
+    if (dayDifference === 0) {
+        return "due-today";
+    }
+    return "";
+}
+
+function getTaskDayDifference(task) {
+    const parsedDueDate = parseDateInput(task.dueDate);
+    if (!parsedDueDate) {
+        return Number.POSITIVE_INFINITY;
+    }
+    return getDayDifferenceFromToday(parsedDueDate);
+}
+
+function isTaskVisibleInUpcomingWindow(task) {
+    if (task.status !== "open") {
+        return false;
+    }
+    const dayDifference = getTaskDayDifference(task);
+    // Central visibility rule: show overdue tasks and tasks due soon, hide far-future care.
+    return dayDifference <= UPCOMING_TASK_WINDOW_DAYS;
+}
+
+function sortOpenTasks(tasksToSort) {
+    return tasksToSort.slice().sort(function (a, b) {
+        const aDue = getSortValueTimestamp(a.dueDate, Number.MAX_SAFE_INTEGER);
+        const bDue = getSortValueTimestamp(b.dueDate, Number.MAX_SAFE_INTEGER);
+        return aDue - bDue;
+    });
+}
+
+function renderCareTasks() {
+    if (!hasTaskUI) {
+        return;
+    }
+
+    careTaskList.innerHTML = "";
+    const visibleTasks = taskDataService.getVisibleTasks(careTasks);
+    const taskLabel = visibleTasks.length === 1 ? "upcoming task" : "upcoming tasks";
+    taskCountSummary.textContent = `${visibleTasks.length} ${taskLabel}`;
+    careTaskList.classList.toggle("has-scrollable-tasks", visibleTasks.length > 0);
+
+    if (visibleTasks.length === 0) {
+        careTaskList.appendChild(createCompactTaskEmptyState());
+        syncContextualCopyUI();
+        return;
+    }
+
+    visibleTasks.forEach(function (task) {
+        careTaskList.appendChild(createCareTaskCard(task));
+    });
+    syncContextualCopyUI();
+}
+
+function createCompactTaskEmptyState() {
+    const emptyState = document.createElement("button");
+    emptyState.type = "button";
+    emptyState.className = "task-empty-toggle";
+    emptyState.setAttribute("aria-expanded", "false");
+
+    const title = document.createElement("span");
+    title.textContent = plants.length === 0 ? "No watering tasks yet" : "No tasks due soon";
+
+    const detail = document.createElement("small");
+    detail.textContent = "No tasks for the next 3 days";
+
+    emptyState.appendChild(title);
+    emptyState.appendChild(detail);
+    emptyState.addEventListener("click", function () {
+        const isExpanded = emptyState.getAttribute("aria-expanded") === "true";
+        emptyState.setAttribute("aria-expanded", isExpanded ? "false" : "true");
+    });
+
+    return emptyState;
+}
+
+function createCareTaskCard(task) {
+    const card = document.createElement("article");
+    card.className = "care-task-card";
+    const urgencyClass = getTaskUrgencyClass(task);
+    if (urgencyClass) {
+        card.classList.add(urgencyClass);
+    }
+
+    const plant = plants.find(function (currentPlant) {
+        return currentPlant.id === task.plantId;
+    });
+
+    const title = document.createElement("p");
+    title.className = "care-task-title";
+    title.textContent = task.title;
+    card.appendChild(title);
+
+    const meta = document.createElement("p");
+    meta.className = "care-task-meta";
+    meta.textContent = plant
+        ? `${getTaskDueLabel(task)} | ${plant.plantType || "Plant"}`
+        : getTaskDueLabel(task);
+    card.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "care-task-actions";
+    const completeButton = document.createElement("button");
+    completeButton.type = "button";
+    completeButton.className = "card-action-btn";
+    completeButton.textContent = "Mark Complete";
+    completeButton.addEventListener("click", async function () {
+        if (!requireAuthenticatedUser()) {
+            return;
+        }
+        completeButton.disabled = true;
+        completeButton.textContent = "Saving...";
+        try {
+            await taskDataService.completeTask(currentUser.id, task.id);
+            await reloadGardenStateFromStorage();
+            renderPlants();
+            renderCareTasks();
+            syncProfileUI();
+            showSessionToast("Watering task completed.", "success");
+        } catch (error) {
+            handlePlantDataError(error, "Unable to complete this task.");
+            completeButton.disabled = false;
+            completeButton.textContent = "Mark Complete";
+        }
+    });
+    actions.appendChild(completeButton);
+    card.appendChild(actions);
+    return card;
+}
+
+function setPlantDataStatus(message, type) {
+    setStatusMessage(plantAutofillStatus, message, type);
+}
+
+function setPlantDataLoading(isLoading, label) {
+    if (!plantSubmitButton) {
+        return;
+    }
+    if (isLoading) {
+        plantSubmitButton.dataset.previousLabel = plantSubmitButton.textContent || "Add Plant";
+        plantSubmitButton.disabled = true;
+        plantSubmitButton.textContent = label || "Saving...";
+        return;
+    }
+
+    const previousLabel = plantSubmitButton.dataset.previousLabel || "";
+    plantSubmitButton.disabled = false;
+    if (previousLabel) {
+        plantSubmitButton.textContent = previousLabel;
+        delete plantSubmitButton.dataset.previousLabel;
+    }
+    updateSubmitButtonState();
+}
+
+function handlePlantDataError(error, fallbackMessage) {
+    const message = error && error.message ? error.message : fallbackMessage;
+    setPlantDataStatus(message, "error");
+    showSessionToast(message, "error");
 }
 
 function clearPlantDashboard() {
     plants = [];
+    careTasks = [];
     activeFilter = "All Plants";
     activeTagFilter = "All Tags";
     activeSort = "newest_added";
@@ -1673,9 +2175,10 @@ function clearPlantDashboard() {
     }
     applySortUIState();
     renderPlants();
+    renderCareTasks();
 }
 
-function applyTrackerAccessState() {
+async function applyTrackerAccessState() {
     if (!hasTrackerUI) {
         return;
     }
@@ -1688,8 +2191,19 @@ function applyTrackerAccessState() {
         }
         loadSortPreference();
         applySortUIState();
-        loadPlants();
-        renderPlants();
+        try {
+            setPlantDataStatus("Loading your garden...", "success");
+            await loadPlants();
+            renderPlants();
+            renderCareTasks();
+            setPlantDataStatus("", "");
+        } catch (error) {
+            plants = [];
+            careTasks = [];
+            renderPlants();
+            renderCareTasks();
+            handlePlantDataError(error, "Unable to load your plants right now.");
+        }
     } else {
         if (trackerLockedState) {
             trackerLockedState.hidden = false;
@@ -1702,16 +2216,17 @@ function applyTrackerAccessState() {
     syncGardenPanelHeightToForm();
 }
 
-function applyAuthState() {
+async function applyAuthState() {
     syncNavAuthUI();
     syncAuthPageSections();
-    applyTrackerAccessState();
+    await applyTrackerAccessState();
     syncProfileUI();
+    syncContextualCopyUI();
 }
 
-function initializeAuthState() {
+async function initializeAuthState() {
     hydrateSessionUser();
-    applyAuthState();
+    await applyAuthState();
 }
 
 function initializeAuthUIListeners() {
@@ -1740,7 +2255,7 @@ function initializeAuthUIListeners() {
                 await loginUser(email, password);
                 setStatusMessage(authFeedback, "Logged in successfully.", "success");
                 setStatusMessage(profileFeedback, "", "");
-                applyAuthState();
+                await applyAuthState();
                 resetPlantForm();
                 showSessionToast(`Welcome back, ${getDefaultProfileName(currentUser)}.`, "success");
             } catch (error) {
@@ -1766,7 +2281,7 @@ function initializeAuthUIListeners() {
                 await createUserAccount(displayName, email, password);
                 setStatusMessage(authFeedback, "Account created and logged in.", "success");
                 setStatusMessage(profileFeedback, "", "");
-                applyAuthState();
+                await applyAuthState();
                 resetPlantForm();
                 signupForm.reset();
                 loginForm.reset();
@@ -1780,37 +2295,8 @@ function initializeAuthUIListeners() {
         });
     }
 
-    if (profileForm) {
-        profileForm.addEventListener("submit", function (event) {
-            event.preventDefault();
-            if (!requireAuthenticatedUser()) {
-                return;
-            }
-            const displayName = profileNameInput ? profileNameInput.value : "";
-            try {
-                setButtonLoadingState(profileSaveButton, true, "Saving...", "Save Profile");
-                updateCurrentUserProfile(displayName);
-                setStatusMessage(profileFeedback, "Profile updated.", "success");
-                applyAuthState();
-                showSessionToast("Profile changes saved.", "success");
-            } catch (error) {
-                setStatusMessage(profileFeedback, error.message || "Unable to update profile.", "error");
-                showSessionToast(error.message || "Unable to update profile.", "error");
-            } finally {
-                setButtonLoadingState(profileSaveButton, false, "Saving...", "Save Profile");
-            }
-        });
-    }
-
-    if (profileNameInput) {
-        profileNameInput.addEventListener("input", function () {
-            syncProfileSaveState();
-            setStatusMessage(profileFeedback, "", "");
-        });
-    }
-
-    function handleLogoutClick() {
-        logoutCurrentUser();
+    async function handleLogoutClick() {
+        await logoutCurrentUser();
     }
 
     if (profileLogoutButton) {
@@ -1884,19 +2370,12 @@ function createPlantCard(plant) {
     }
 
     addDetail("Type", plant.plantType || "Not specified");
-    if (plant.scientificName) {
-        addDetail("Scientific name", plant.scientificName);
+    if (plant.lightNeeds) {
+        addDetail("Light", plant.lightNeeds);
     }
-    if (plant.wateringNeeds) {
-        addDetail("Watering need", plant.wateringNeeds);
-    }
-    addDetail("Light", plant.lightNeeds);
-    addDetail("Water every X days", `${plant.wateringFrequency}`);
+    addDetail("Watering schedule", `Every ${plant.wateringFrequency || 7} days`);
     if (plant.notes) {
         addDetail("Notes", plant.notes);
-    }
-    if (normalizedTags.length > 0) {
-        addDetail("Tags", normalizedTags.join(", "));
     }
     const lastWateredValue = addDetail("Last watered", plant.lastWateredDate);
     const nextWateringValue = addDetail("Next watering", "");
@@ -1925,24 +2404,60 @@ function createPlantCard(plant) {
     wateredButton.type = "button";
     wateredButton.className = "card-action-btn";
     wateredButton.textContent = "Watered Today";
-    wateredButton.addEventListener("click", function (event) {
+    wateredButton.addEventListener("click", async function (event) {
         event.stopPropagation();
-        plant.lastWateredDate = formatDateForInput(getStartOfToday());
-        savePlants();
-        refreshWateringDetails();
+        if (!requireAuthenticatedUser()) {
+            return;
+        }
+        const previousLabel = wateredButton.textContent;
+        wateredButton.disabled = true;
+        wateredButton.textContent = "Saving...";
+        try {
+            taskDataService.completeOpenWateringTaskForPlant(currentUser.id, plant.id);
+            await reloadGardenStateFromStorage();
+            const updatedPlant = plants.find(function (currentPlant) {
+                return currentPlant.id === plant.id;
+            });
+            if (updatedPlant) {
+                Object.assign(plant, updatedPlant);
+            }
+            refreshWateringDetails();
+            updateDashboardSummary();
+            renderCareTasks();
+            syncProfileUI();
+        } catch (error) {
+            handlePlantDataError(error, "Unable to update watering status.");
+        } finally {
+            wateredButton.disabled = false;
+            wateredButton.textContent = previousLabel;
+        }
     });
 
     const deleteButton = document.createElement("button");
     deleteButton.type = "button";
     deleteButton.className = "card-action-btn delete";
     deleteButton.textContent = "Delete";
-    deleteButton.addEventListener("click", function (event) {
+    deleteButton.addEventListener("click", async function (event) {
         event.stopPropagation();
-        plants = plants.filter(function (currentPlant) {
-            return currentPlant.id !== plant.id;
-        });
-        savePlants();
-        renderPlants();
+        if (!requireAuthenticatedUser()) {
+            return;
+        }
+        const previousLabel = deleteButton.textContent;
+        deleteButton.disabled = true;
+        deleteButton.textContent = "Deleting...";
+        try {
+            await plantDataService.deletePlant(currentUser.id, plant.id);
+            plants = await plantDataService.listPlants(currentUser.id);
+            careTasks = taskDataService.reconcileWateringTasks(currentUser.id, plants);
+            renderPlants();
+            renderCareTasks();
+            syncProfileUI();
+            showSessionToast(`${plant.plantName} was removed from your garden.`, "success");
+        } catch (error) {
+            handlePlantDataError(error, "Unable to delete this plant.");
+            deleteButton.disabled = false;
+            deleteButton.textContent = previousLabel;
+        }
     });
 
     const editButton = document.createElement("button");
@@ -2013,14 +2528,29 @@ function renderPlants() {
     updateDashboardSummary();
 
     if (plants.length === 0) {
-        plantCountSummary.textContent = "0 plants";
-        const state = document.createElement("p");
+        plantCountSummary.textContent = "";
+        const state = document.createElement("div");
         state.id = "empty-state";
-        state.className = "empty-state";
-        state.textContent = EMPTY_STATE_TEXT;
+        state.className = "empty-state empty-state-card";
+        const title = document.createElement("h4");
+        title.textContent = "No plants yet";
+        const copy = document.createElement("p");
+        copy.textContent = "Add your first plant to start seeing watering status and care tasks here.";
+        copy.dataset.plantEmptyCopy = "";
+        const action = document.createElement("a");
+        action.className = "cta-button";
+        action.href = "#plant-form";
+        action.dataset.plantCta = "";
+        action.textContent = "Add your first plant";
+        plantEmptyCopyElements.push(copy);
+        plantCtaElements.push(action);
+        state.appendChild(title);
+        state.appendChild(copy);
+        state.appendChild(action);
         plantCards.appendChild(state);
         updateExpandCollapseControls();
         syncGardenPanelHeightToForm();
+        syncContextualCopyUI();
         return;
     }
 
@@ -2032,8 +2562,7 @@ function renderPlants() {
     });
 
     if (activeFilter === "All Plants" && activeTagFilter === "All Tags") {
-        const label = plants.length === 1 ? "plant" : "plants";
-        plantCountSummary.textContent = `${plants.length} ${label}`;
+        plantCountSummary.textContent = "";
     } else {
         const filteredLabel = filteredPlants.length === 1 ? "plant" : "plants";
         const activeFilterLabels = [];
@@ -2077,7 +2606,7 @@ function renderPlants() {
 }
 
 if (hasTrackerUI) {
-    plantForm.addEventListener("submit", function (event) {
+    plantForm.addEventListener("submit", async function (event) {
         event.preventDefault();
         if (!requireAuthenticatedUser()) {
             return;
@@ -2125,6 +2654,7 @@ if (hasTrackerUI) {
         }
 
         const nextPlantData = {
+            customName: plantName,
             plantName,
             plantType,
             plantProfileId,
@@ -2133,31 +2663,32 @@ if (hasTrackerUI) {
             wateringNeeds,
             wateringFrequency,
             notes,
-            tags,
-            userId: currentUser.id
+            tags
         };
 
-        if (editingPlantId) {
-            plants = plants.map(function (plant) {
-                if (plant.id !== editingPlantId) {
-                    return plant;
-                }
-                return {
-                    ...plant,
-                    ...nextPlantData
-                };
-            });
-        } else {
-            plants.unshift({
-                id: Date.now().toString(),
-                ...nextPlantData,
-                lastWateredDate: formatDateForInput(getStartOfToday())
-            });
+        try {
+            setPlantDataLoading(true, editingPlantId ? "Saving..." : "Adding...");
+            if (editingPlantId) {
+                await plantDataService.updatePlant(currentUser.id, editingPlantId, nextPlantData);
+                showSessionToast(`${plantName} was updated.`, "success");
+            } else {
+                await plantDataService.createPlant(currentUser.id, {
+                    ...nextPlantData,
+                    lastWateredDate: formatDateForInput(getStartOfToday())
+                });
+                showSessionToast(`${plantName} was added to your garden.`, "success");
+            }
+            plants = await plantDataService.listPlants(currentUser.id);
+            careTasks = taskDataService.reconcileWateringTasks(currentUser.id, plants);
+            renderPlants();
+            renderCareTasks();
+            resetPlantForm();
+            syncProfileUI();
+        } catch (error) {
+            handlePlantDataError(error, "Unable to save this plant.");
+        } finally {
+            setPlantDataLoading(false);
         }
-
-        savePlants();
-        renderPlants();
-        resetPlantForm();
     });
 
     if (manualEntryButton) {
