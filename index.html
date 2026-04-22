@@ -4,39 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Green Thumb</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
     <style>
         #plant-name::placeholder {
             color: #6b8e73;
         }
     </style>
-    <script src="script.js" defer></script>
+    <script src="js/script.js" defer></script>
 </head>
-<body class="index-page">
+<body class="index-page home-page">
     <div class="page-shell">
         <div class="main-content landing-content">
             <div class="hero-section">
                 <div class="hero-top-row">
                     <div class="page-header">
-                        <h1 id="top">Green Thumb</h1>
+                        <h1 id="top"><span class="brand-icon" aria-hidden="true"></span>Green Thumb</h1>
                     </div>
                     <div class="top-nav">
                         <a class="nav-link active" href="index.html">Home</a>
-                        <a class="nav-link" href="html/mygarden.html">My Garden</a>
-                        <a id="nav-login-link" class="nav-link" href="html/profile.html#account">Log In</a>
-                        <a id="nav-profile-link" class="nav-link" href="html/profile.html" hidden>Profile</a>
+                        <a class="nav-link" href="pages/mygarden.html">My Garden</a>
+                        <a id="nav-login-link" class="nav-link" href="pages/profile.html#account">Log In</a>
+                        <a id="nav-profile-link" class="nav-link" href="pages/profile.html" hidden>Profile</a>
                         <button id="nav-logout-btn" class="nav-link nav-logout-btn" type="button" hidden>Log Out</button>
                     </div>
                 </div>
-                <div class="hero-body">
-                    <h2 class="hero-title">Grow healthier plants with less guesswork.</h2>
-                    <p class="hero-description">
-                        From personalized watering schedules to AI-powered recommendations, Green Thumb gives plant owners practical care guidance that adapts to your home and routine so you can stay consistent and confident.
-                    </p>
-                </div>
-                <div class="hero-cta-row">
-                    <a class="cta-button" href="html/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
-                    <a class="cta-button secondary" href="html/profile.html#account" data-auth-create-cta>Create account</a>
+                <div class="hero-center">
+                    <div class="hero-body">
+                        <h2 class="hero-title">Grow healthier plants with less guesswork.</h2>
+                        <p class="hero-description">
+                            From personalized watering schedules to AI-powered recommendations, Green Thumb gives plant owners practical care guidance that adapts to your home and routine so you can stay consistent and confident.
+                        </p>
+                    </div>
+                    <div class="hero-cta-row">
+                        <a class="cta-button" href="pages/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
+                        <a class="cta-button secondary" href="pages/profile.html#account" data-auth-create-cta>Create account</a>
+                    </div>
                 </div>
             </div>
 
@@ -124,11 +126,22 @@
                 </div>
             </div>
 
+            <div class="section-block wellness-invite">
+                <div>
+                    <h3 class="section-title">Gardening Helps More Than Plants</h3>
+                    <p class="section-text">
+                        A steady plant-care routine can also support calm, focus, and a healthier daily rhythm.
+                        Explore how gardening connects to mental well-being.
+                    </p>
+                </div>
+                <a class="cta-button secondary wellness-button" href="scratch.html">Learn Mental Health Benefits</a>
+            </div>
+
             <div class="section-block final-cta">
                 <h3 class="section-title">Ready to make plant care simpler?</h3>
                 <p class="section-text">Start tracking your plants today and let Green Thumb guide your next steps.</p>
                 <div class="cta-actions">
-                    <a class="cta-button" href="html/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
+                    <a class="cta-button" href="pages/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
                     <a id="quiz-preview-trigger" class="cta-button secondary" href="#">Preview plant quiz</a>
                 </div>
             </div>
@@ -157,7 +170,7 @@
                 <li>Are you looking for low-maintenance plants?</li>
                 <li>Do you have pets at home?</li>
             </ul>
-            <a class="cta-button" href="html/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
+            <a class="cta-button" href="pages/mygarden.html#tracker" data-plant-cta>Add your first plant</a>
         </div>
     </div>
 

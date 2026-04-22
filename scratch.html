@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gardening for Mental Health</title>
+    <!-- Requirement 6: linked custom stylesheet created from scratch -->
+    <link rel="stylesheet" href="css/scratch-styles.css">
+    <script>
+        if ("scrollRestoration" in history) {
+            history.scrollRestoration = "manual";
+        }
+
+        window.addEventListener("load", function () {
+            window.scrollTo(0, 0);
+        });
+    </script>
+</head>
+<body>
+    <!-- Requirement 5: custom background color is set on the body in css/scratch-styles.css -->
+    <header class="site-top" id="top">
+        <nav class="scratch-nav" aria-label="Scratch page navigation">
+            <a class="brand-link" href="index.html"><span class="brand-icon" aria-hidden="true"></span>Green Thumb</a>
+            <div class="nav-actions">
+                <!-- Requirement 13: navigation to resume page -->
+                <a href="resume.html">Meet the Creator</a>
+                <a href="pages/profile.html#account">Get Involved</a>
+                <div class="nav-dropdown">
+                    <button class="dropdown-trigger" type="button" aria-haspopup="true" aria-expanded="false">Explore the Page</button>
+                    <div class="dropdown-menu" aria-label="Explore page sections">
+                        <!-- Requirement 4: on-page anchor links that jump lower on the page -->
+                        <a href="#benefits">See Gardening Benefits</a>
+                        <a href="#stress-data">View Stress Data</a>
+                        <a href="#reflection">Read Final Reflection</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="intro-block">
+            <!-- Div 1 used for positioning/styling content blocks -->
+            <div class="hero-title-row">
+                <div class="hero-copy">
+                    <h1><span class="title-line">Gardening Grows</span><span class="title-line">More Than Plants</span></h1>
+                    <p class="lead">
+                        Gardening can turn a small patch of soil, a balcony planter, or a sunny windowsill into a steady routine
+                        for focus, calm, and emotional reset. The work is simple and hands-on: notice what is growing, care for it
+                        consistently, and let the progress remind you that change can happen slowly and beautifully.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <section class="content-section" id="benefits" aria-labelledby="benefits-title">
+            <div class="section-heading benefits-heading">
+                <h2 id="benefits-title">Mental Health Benefits of Gardening</h2>
+            </div>
+
+            <div class="benefits-media-row">
+                <div class="benefits-copy">
+                    <!-- Requirement 1: unordered list embedded inside an ordered list -->
+                    <ol class="benefit-list">
+                        <li>
+                            <strong>Reduces everyday stress.</strong>
+                            <ul>
+                                <li>Gentle outdoor movement can help release tension.</li>
+                                <li>Repeating simple tasks gives the mind a break from constant decisions.</li>
+                                <li>Natural colors, textures, and scents create a calmer setting.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Builds a healthy routine.</strong>
+                            <ul>
+                                <li>Checking soil moisture adds structure to the day.</li>
+                                <li>Seasonal tasks encourage planning without pressure.</li>
+                                <li>Small wins make consistency feel rewarding.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Encourages connection.</strong>
+                            <ul>
+                                <li>Gardens can become shared spaces with family, neighbors, or classmates.</li>
+                                <li>Growing food or flowers gives people something positive to talk about.</li>
+                                <li>Community gardens can reduce feelings of isolation.</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="benefits-video" id="wellness-video" aria-label="Gardening and well-being video">
+                    <div class="video-frame">
+                        <!-- Requirement 3: exact YouTube embed code requested for the page -->
+                        <iframe width="560" height="315" src="https://www.youtube.com/embed/8uOT84y_kdc?si=I4wb-uBdHf5aIlwr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </div>
+                    <div class="garden-carousel" aria-label="Raised garden bed image carousel">
+                        <div class="carousel-viewport">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_vegetable_bed_2.jpg?width=960" alt="Raised vegetable bed with leafy crops">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_vegetable_bed_1.jpg?width=960" alt="Wooden raised vegetable bed in a garden">
+                            <img class="carousel-slide is-active" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_Vegetable_Beds.jpg?width=960" alt="Raised metal garden beds filled with green plants">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_vegetable_bed_3.jpg?width=960" alt="Raised vegetable bed with garden soil and plants">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_bed.jpg?width=960" alt="Raised garden bed planted with vegetables and flowers">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/PVC-Farme_Smart_Pot_Urban_Raised_Bed.jpg?width=960" alt="Urban raised bed garden setup">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Tomatoes_in_a_raised_bed_garden.jpg?width=960" alt="Tomatoes growing in a raised bed garden">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_bed_(30827889726).jpg?width=960" alt="Wooden raised bed garden outdoors">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_Garden_Beds_(4600827352).jpg?width=960" alt="Raised garden bed display with plants">
+                            <img class="carousel-slide" src="https://commons.wikimedia.org/wiki/Special:FilePath/Raised_Bed_Pallet_Garden.JPG?width=960" alt="Raised bed garden made from recycled pallets">
+                            <button class="carousel-button carousel-prev" type="button" aria-label="Previous garden image">&lsaquo;</button>
+                            <button class="carousel-button carousel-next" type="button" aria-label="Next garden image">&rsaquo;</button>
+                        </div>
+                        <div class="carousel-dots" aria-label="Choose garden image"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="tableau-band">
+            <section class="content-section media-section tableau-feature" id="stress-data" aria-labelledby="tableau-title">
+                <div class="tableau-frame">
+                    <!-- Requirement 11: live embedded Tableau visualization. Replace this Tableau embed later if needed. -->
+                    <div class='tableauPlaceholder' id='viz1776582074769' style='position: relative'>
+                        <noscript>
+                            <a href='#'>
+                                <img alt='The More You Garden, The Lower Your Stress ' src='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;X6&#47;X68MSNQRH&#47;1_rss.png' style='border: none' />
+                            </a>
+                        </noscript>
+                        <object class='tableauViz' style='display:none;'>
+                            <param name='host_url' value='https%3A%2F%2Fpublic.tableau.com%2F' />
+                            <param name='embed_code_version' value='3' />
+                            <param name='path' value='shared&#47;X68MSNQRH' />
+                            <param name='toolbar' value='yes' />
+                            <param name='static_image' value='https:&#47;&#47;public.tableau.com&#47;static&#47;images&#47;X6&#47;X68MSNQRH&#47;1.png' />
+                            <param name='animate_transition' value='yes' />
+                            <param name='display_static_image' value='yes' />
+                            <param name='display_spinner' value='yes' />
+                            <param name='display_overlay' value='yes' />
+                            <param name='display_count' value='yes' />
+                            <param name='language' value='en-US' />
+                            <param name='filter' value='publish=yes' />
+                        </object>
+                    </div>
+                    <script type='text/javascript'>
+                        var divElement = document.getElementById('viz1776582074769');
+                        var vizElement = divElement.getElementsByTagName('object')[0];
+                        vizElement.style.width = '100%';
+                        vizElement.style.height = (divElement.offsetWidth * 0.62) + 'px';
+                        var scriptElement = document.createElement('script');
+                        scriptElement.src = 'https://public.tableau.com/javascripts/api/viz_v1.js';
+                        vizElement.parentNode.insertBefore(scriptElement, vizElement);
+                    </script>
+                </div>
+
+                <div class="section-heading tableau-heading">
+                    <h2 id="tableau-title">The More You Garden, The Lower Your Stress</h2>
+                    <p>
+                        This interactive visualization turns the page's main idea into a focal point: gardening is not just a
+                        relaxing hobby, but a routine that can support lower stress and better day-to-day well-being.
+                    </p>
+                </div>
+            </section>
+        </div>
+
+        <section class="content-section reflection-section" id="reflection" aria-labelledby="reflection-title">
+            <div class="text-block reflection-copy">
+                <h2 id="reflection-title">Reflection</h2>
+                <p>
+                    Spending time with plants invites people to slow down, breathe, and pay attention to something living.
+                    That kind of mindful attention can soften stress because the task has a clear purpose without feeling
+                    rushed. Watering, pruning, planting, and harvesting create a rhythm that feels grounding during busy or
+                    overwhelming weeks.
+                </p>
+                <p>
+                    Gardening also gives visible feedback. A new leaf, a stronger stem, or a small harvest can build a sense
+                    of accomplishment. Even when plants struggle, the process teaches patience and problem solving instead of
+                    perfection.
+                </p>
+                <p>
+                    Gardening is not a cure-all, but it is a meaningful tool for mental wellness because it combines care,
+                    movement, patience, and visible growth. A garden gives people a place to return to, and that return can
+                    become a quiet reminder that progress is often built one small action at a time.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="footer-heading">
+                <h2>Continue the Journey</h2>
+            </div>
+
+            <div class="explore-grid">
+                <div class="explore-panel">
+                    <h3>Meet the Creator</h3>
+                    <p>
+                        Sam Jensen is a BYU entrepreneurship student with experience in legal operations, coaching,
+                        project leadership, and Spanish-speaking service. His GreenThumb work combines business
+                        problem solving, IS 201 technical skills, and a personal interest in helping plant care feel
+                        simple, useful, and human.
+                    </p>
+                    <!-- Requirement 13: button linking to resume page -->
+                    <a class="action-button" href="resume.html">View Resume</a>
+                </div>
+
+                <div class="explore-panel">
+                    <h3>Start Growing</h3>
+                    <p>
+                        Explore GreenThumb to see how a plant-care project can turn daily routines into healthier habits.
+                        Get ideas for tracking your own garden, building consistency, and starting a calmer growing journey.
+                    </p>
+                    <!-- Requirement 14: button linking to GreenThumb project page -->
+                    <a class="action-button primary" href="index.html">Explore GreenThumb</a>
+                </div>
+            </div>
+
+            <a class="top-link" href="#top">Back to Top</a>
+        </div>
+    </footer>
+    <script>
+        (function () {
+            var carousel = document.querySelector(".garden-carousel");
+            if (!carousel) {
+                return;
+            }
+
+            var slides = Array.prototype.slice.call(carousel.querySelectorAll(".carousel-slide"));
+            var dotsContainer = carousel.querySelector(".carousel-dots");
+            var previousButton = carousel.querySelector(".carousel-prev");
+            var nextButton = carousel.querySelector(".carousel-next");
+            var currentSlide = 0;
+
+            function showSlide(index) {
+                currentSlide = (index + slides.length) % slides.length;
+                slides.forEach(function (slide, slideIndex) {
+                    slide.classList.toggle("is-active", slideIndex === currentSlide);
+                });
+
+                Array.prototype.slice.call(dotsContainer.children).forEach(function (dot, dotIndex) {
+                    dot.classList.toggle("is-active", dotIndex === currentSlide);
+                    dot.setAttribute("aria-current", dotIndex === currentSlide ? "true" : "false");
+                });
+            }
+
+            slides.forEach(function (_, index) {
+                var dot = document.createElement("button");
+                dot.type = "button";
+                dot.className = "carousel-dot";
+                dot.setAttribute("aria-label", "Show garden image " + (index + 1));
+                dot.addEventListener("click", function () {
+                    showSlide(index);
+                });
+                dotsContainer.appendChild(dot);
+            });
+
+            previousButton.addEventListener("click", function () {
+                showSlide(currentSlide - 1);
+            });
+
+            nextButton.addEventListener("click", function () {
+                showSlide(currentSlide + 1);
+            });
+
+            showSlide(0);
+        }());
+    </script>
+</body>
+</html>
